@@ -1,6 +1,0 @@
-@MouseJigglerBackend_HostAddress = http://localhost:5230
-
-GET {{MouseJigglerBackend_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
