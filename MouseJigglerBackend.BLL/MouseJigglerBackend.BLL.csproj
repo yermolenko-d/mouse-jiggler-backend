@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
@@ -7,14 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0"/>
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\MouseJigglerBackend.Core\MouseJigglerBackend.Core.csproj" />
         <ProjectReference Include="..\MouseJigglerBackend.DAL\MouseJigglerBackend.DAL.csproj" />
-        <ProjectReference Include="..\MouseJigglerBackend.BLL\MouseJigglerBackend.BLL.csproj" />
     </ItemGroup>
 
 </Project>
