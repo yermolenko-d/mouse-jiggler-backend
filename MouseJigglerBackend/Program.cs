@@ -21,7 +21,7 @@ public class Program
 
         // Add Entity Framework
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
         // Add repositories
         builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -35,13 +35,9 @@ public class Program
         builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 
         // Add CORS
-        builder.Services.AddCors(options =>
-        {
-            options.AddPolicy("AllowAll", policy =>
-            {
-                policy.AllowAnyOrigin()
-                      .AllowAnyMethod()
-                      .AllowAnyHeader();
+        builder.Services.AddCors(options => {
+            options.AddPolicy("AllowAll", policy => {
+                policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
             });
         });
 
@@ -50,11 +46,12 @@ public class Program
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-            app.MapOpenApi();
+            
         }
-
+        app.UseSwagger();
+        app.UseSwaggerUI();
+        app.MapOpenApi();
+        
         app.UseHttpsRedirection();
         app.UseCors("AllowAll");
         app.UseAuthorization();

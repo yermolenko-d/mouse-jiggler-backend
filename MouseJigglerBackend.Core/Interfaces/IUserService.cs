@@ -8,4 +8,5 @@ public interface IUserService
     Task<UserDto?> GetUserByEmailAsync(string email);
     Task<UserDto> CreateUserAsync(string email, string firstName, string lastName);
     Task<bool> UserExistsAsync(string email);
+    Task<IEnumerable<UserDto>> GetUsersByEmailFilterAsync(IEnumerable<string> emailFilters);
 }

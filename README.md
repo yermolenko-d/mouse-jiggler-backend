@@ -72,24 +72,44 @@ This solution follows a clean architecture pattern with the following layers:
 
 ### Prerequisites
 - .NET 9.0 SDK
-- SQL Server LocalDB (or SQL Server)
+- PostgreSQL 12+ (installed locally)
 - Visual Studio 2022 or VS Code
 
 ### Setup
 1. **Clone the repository**
-2. **Restore packages**:
+2. **Install PostgreSQL**:
+   - **Windows**: Download from [postgresql.org](https://www.postgresql.org/download/windows/)
+   - **macOS**: `brew install postgresql` or download from postgresql.org
+   - **Linux**: `sudo apt-get install postgresql postgresql-contrib` (Ubuntu/Debian)
+
+3. **Create PostgreSQL database**:
+   ```sql
+   CREATE DATABASE "MouseJigglerDb_Dev";
+   CREATE DATABASE "MouseJigglerDb";
+   ```
+
+4. **Update connection string** in `appsettings.json` and `appsettings.Development.json`:
+   ```json
+   "ConnectionStrings": {
+     "DefaultConnection": "Host=localhost;Database=MouseJigglerDb_Dev;Username=postgres;Password=your_password_here"
+   }
+   ```
+
+5. **Restore packages**:
    ```bash
    dotnet restore
    ```
-3. **Update connection string** in `appsettings.json` if needed
-4. **Create database**:
+
+6. **Create and apply migrations**:
    ```bash
    dotnet ef database update --project MouseJigglerBackend.DAL --startup-project MouseJigglerBackend
    ```
-5. **Run the application**:
+
+7. **Run the application**:
    ```bash
    dotnet run --project MouseJigglerBackend
    ```
+
 
 ### Database Migration
 To create a new migration:
@@ -146,8 +166,8 @@ dotnet ef migrations add MigrationName --project MouseJigglerBackend.DAL --start
 ## 🔧 **Configuration**
 
 ### Connection Strings
-- **Development**: `MouseJigglerDb_Dev` (LocalDB)
-- **Production**: `MouseJigglerDb` (SQL Server)
+- **Development**: `MouseJigglerDb_Dev` (PostgreSQL)
+- **Production**: `MouseJigglerDb` (PostgreSQL)
 
 ### CORS Policy
 - **AllowAll**: Permits all origins, methods, and headers (for development)
@@ -155,16 +175,33 @@ dotnet ef migrations add MigrationName --project MouseJigglerBackend.DAL --start
 ## 📝 **Development Notes**
 
 - All projects target .NET 9.0
-- Entity Framework Core 9.0 for data access
+- Entity Framework Core 9.0 with PostgreSQL provider
+- Npgsql.EntityFrameworkCore.PostgreSQL for PostgreSQL integration
 - Swagger for API documentation
 - Nullable reference types enabled
 - Implicit usings enabled
 
+## 🐘 **PostgreSQL Features**
+
+- **JSON Support**: Native JSON/JSONB column types
+- **Full-Text Search**: Advanced text search capabilities
+- **Array Support**: Native array data types
+- **Extensions**: Support for PostGIS, pg_stat_statements, etc.
+- **Performance**: Excellent performance for read-heavy workloads
+
 ## 🚀 **Deployment**
 
 The API is designed to be deployed to cloud platforms like:
-- Azure App Service
-- Heroku
-- AWS Elastic Beanstalk
+- Azure App Service (with Azure Database for PostgreSQL)
+- Heroku (with Heroku Postgres addon)
+- AWS Elastic Beanstalk (with RDS PostgreSQL)
+- Railway
+- DigitalOcean App Platform
+
+### Environment Variables for Production
+Set these environment variables in your hosting platform:
+```
+ConnectionStrings__DefaultConnection=Host=your_host;Database=MouseJigglerDb;Username=your_username;Password=your_password;SSL Mode=Require
+```
 
 Make sure to update connection strings and CORS policies for production deployment.

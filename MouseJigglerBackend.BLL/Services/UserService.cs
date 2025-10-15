@@ -47,6 +47,12 @@ public class UserService : IUserService
         return await _userRepository.ExistsAsync(u => u.Email == email);
     }
 
+    public async Task<IEnumerable<UserDto>> GetUsersByEmailFilterAsync(IEnumerable<string> emailFilters)
+    {
+        var users = await _userRepository.FindAsync(u => emailFilters.Any(filter => u.Email.Contains(filter)));
+        return users.Select(MapToUserDto);
+    }
+
     private static UserDto MapToUserDto(User user)
     {
         return new UserDto
