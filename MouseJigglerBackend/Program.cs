@@ -36,9 +36,21 @@ public class Program
 
         // Add CORS
         builder.Services.AddCors(options => {
-            options.AddPolicy("AllowAll", policy => {
-                policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-            });
+            if (builder.Environment.IsDevelopment())
+            {
+                options.AddPolicy("AllowAll", policy => {
+                    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                });
+            }
+            else
+            {
+                var allowedOrigins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>() ?? new string[0];
+                options.AddPolicy("Production", policy => {
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
+                });
+            }
         });
 
         var app = builder.Build();
@@ -46,14 +58,33 @@ public class Program
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
-            
+            app.UseSwagger();
+            app.UseSwaggerUI();
+            app.MapOpenApi();
         }
-        app.UseSwagger();
-        app.UseSwaggerUI();
-        app.MapOpenApi();
+        else
+        {
+            // In production, only enable Swagger if explicitly configured
+            var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", false);
+            if (enableSwagger)
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+                app.MapOpenApi();
+            }
+        }
         
         app.UseHttpsRedirection();
-        app.UseCors("AllowAll");
+        
+        // Use appropriate CORS policy based on environment
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseCors("AllowAll");
+        }
+        else
+        {
+            app.UseCors("Production");
+        }
         app.UseAuthorization();
 
         app.MapControllers();
