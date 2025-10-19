@@ -21,8 +21,21 @@ public class Program
 
         // Add Entity Framework
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+        {
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            // Replace environment variables in connection string if they exist
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                connectionString = connectionString
+                    .Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost")
+                    .Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT") ?? "5432")
+                    .Replace("${DB_NAME}", Environment.GetEnvironmentVariable("DB_NAME") ?? "jiggler_prod")
+                    .Replace("${DB_USER}", Environment.GetEnvironmentVariable("DB_USER") ?? "dev")
+                    .Replace("${DB_PASSWORD}", Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "");
+                Console.WriteLine($"Final connection string: {connectionString}");
+            }
+            options.UseNpgsql(connectionString);
+        });
         // Add repositories
         builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         builder.Services.AddScoped<IActivationKeyRepository, ActivationKeyRepository>();
@@ -33,6 +46,8 @@ public class Program
         builder.Services.AddScoped<IActivationKeyService, ActivationKeyService>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+        builder.Services.AddScoped<IAuthService, AuthService>();
+        builder.Services.AddScoped<IPasswordService, PasswordService>();
 
         // Add CORS
         builder.Services.AddCors(options => {
@@ -41,9 +56,7 @@ public class Program
                 options.AddPolicy("AllowAll", policy => {
                     policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
                 });
-            }
-            else
-            {
+            } else {
                 var allowedOrigins = builder.Configuration.GetSection("CORS:AllowedOrigins").Get<string[]>() ?? new string[0];
                 options.AddPolicy("Production", policy => {
                     policy.WithOrigins(allowedOrigins)
@@ -56,22 +69,12 @@ public class Program
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
+        var enableSwagger = builder.Configuration.GetValue("EnableSwagger", false);
+        if (app.Environment.IsDevelopment() || enableSwagger)
         {
             app.UseSwagger();
             app.UseSwaggerUI();
             app.MapOpenApi();
-        }
-        else
-        {
-            // In production, only enable Swagger if explicitly configured
-            var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger", false);
-            if (enableSwagger)
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-                app.MapOpenApi();
-            }
         }
         
         app.UseHttpsRedirection();
@@ -80,9 +83,7 @@ public class Program
         if (app.Environment.IsDevelopment())
         {
             app.UseCors("AllowAll");
-        }
-        else
-        {
+        } else {
             app.UseCors("Production");
         }
         app.UseAuthorization();

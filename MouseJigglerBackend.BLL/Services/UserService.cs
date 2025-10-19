@@ -27,13 +27,19 @@ public class UserService : IUserService
         return user != null ? MapToUserDto(user) : null;
     }
 
-    public async Task<UserDto> CreateUserAsync(string email, string firstName, string lastName)
+    public async Task<User?> GetUserEntityByEmailAsync(string email)
+    {
+        return await _userRepository.GetByEmailAsync(email);
+    }
+
+    public async Task<UserDto> CreateUserAsync(string email, string firstName, string lastName, string passwordHash)
     {
         var user = new User
         {
             Email = email,
             FirstName = firstName,
             LastName = lastName,
+            PasswordHash = passwordHash,
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         };
