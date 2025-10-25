@@ -11,4 +11,5 @@ public interface IAuthService
     Task<AuthResponseDto> ResetPasswordAsync(PasswordResetConfirmDto request);
     Task<bool> ValidateTokenAsync(string token);
     Task LogoutAsync(string token);
+    Task<UserDto?> GetUserFromTokenAsync(string token);
 }

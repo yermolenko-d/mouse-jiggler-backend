@@ -309,4 +309,38 @@ public class AuthController : ControllerBase
             return StatusCode(500, new { success = false, message = "Internal server error" });
         }
     }
+
+    /// <summary>
+    /// Get current authenticated user information
+    /// </summary>
+    /// <param name="token">JWT token</param>
+    /// <returns>Current user information</returns>
+    [HttpPost("current-user")]
+    [ProducesResponseType(typeof(UserDto), 200)]
+    [ProducesResponseType(typeof(object), 401)]
+    [ProducesResponseType(typeof(object), 500)]
+    public async Task<IActionResult> GetCurrentUser([FromBody] string token)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(token))
+            {
+                return Unauthorized(new { success = false, message = "Token is required" });
+            }
+
+            var user = await _authService.GetUserFromTokenAsync(token);
+
+            if (user == null)
+            {
+                return Unauthorized(new { success = false, message = "Invalid or expired token" });
+            }
+
+            return Ok(user);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in current-user endpoint");
+            return StatusCode(500, new { success = false, message = "Internal server error" });
+        }
+    }
 }

@@ -279,6 +279,39 @@ public class AuthService : IAuthService
         }
     }
 
+    public async Task<UserDto?> GetUserFromTokenAsync(string token)
+    {
+        try
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(GetJwtSecret());
+
+            var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidIssuer = GetJwtIssuer(),
+                ValidAudience = GetJwtAudience(),
+                ClockSkew = TimeSpan.Zero
+            }, out SecurityToken validatedToken);
+
+            var userIdClaim = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return null;
+            }
+
+            return await _userService.GetUserByIdAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error extracting user from token");
+            return null;
+        }
+    }
+
     private string GenerateJwtToken(UserDto user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
