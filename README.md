@@ -46,11 +46,11 @@ $env:PGPASSWORD="<your_dev_password>"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" `
   -h localhost -U dev -d jiggler_prod `
   -f "C:\deploy\Migrations_Prod.sql"
-```
-
 # Reactivate the site
 Remove-Item "C:\inetpub\MouseJiggler\app_offline.htm" -Force
 iisreset
+```
+
 🧾 4. Verify the deployment
 ✅ Check migrations applied:
 ```
