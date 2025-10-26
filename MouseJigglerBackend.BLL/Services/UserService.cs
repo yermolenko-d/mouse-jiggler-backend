@@ -50,6 +50,14 @@ public class UserService : IUserService
         return users.Select(MapToUserDto);
     }
 
+    public async Task UpdateLastLoginAsync(int userId) {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user != null) {
+            user.LastLoginAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+        }
+    }
+
     private static UserDto MapToUserDto(User user) {
         return new UserDto {
             Id = user.Id,

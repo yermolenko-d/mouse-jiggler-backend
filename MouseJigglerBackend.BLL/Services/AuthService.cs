@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using MouseJigglerBackend.Core.Constants;
 using MouseJigglerBackend.Core.DTOs;
 using MouseJigglerBackend.Core.Entities;
 using MouseJigglerBackend.Core.Interfaces;
@@ -15,17 +16,20 @@ public class AuthService : IAuthService
 {
     private readonly IUserService _userService;
     private readonly IPasswordService _passwordService;
+    private readonly INewsletterSubscriptionService _newsletterService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUserService userService,
         IPasswordService passwordService,
+        INewsletterSubscriptionService newsletterService,
         IConfiguration configuration,
         ILogger<AuthService> logger)
     {
         _userService = userService;
         _passwordService = passwordService;
+        _newsletterService = newsletterService;
         _configuration = configuration;
         _logger = logger;
     }
@@ -34,176 +38,104 @@ public class AuthService : IAuthService
     {
         try {
             _logger.LogInformation("Attempting login for email: {Email}", request.Email);
-            // Get the user entity to access password hash
             var userEntity = await _userService.GetUserEntityByEmailAsync(request.Email);
             if (userEntity == null) {
                 _logger.LogWarning("Login failed: User not found for email: {Email}", request.Email);
-                return new AuthResponseDto {
-                    Success = false,
-                    Message = "Invalid email or password",
-                    Errors = new List<string> { "Invalid credentials" }
-                };
+                return CreateErrorResponse(AuthConstants.InvalidCredentials, AuthConstants.InvalidCredentialsError);
             }
-            // Verify password
             var passwordValid = _passwordService.VerifyPassword(request.Password, userEntity.PasswordHash);
             if (!passwordValid) {
                 _logger.LogWarning("Login failed: Invalid password for email: {Email}", request.Email);
-                return new AuthResponseDto {
-                    Success = false,
-                    Message = "Invalid email or password",
-                    Errors = new List<string> { "Invalid credentials" }
-                };
+                return CreateErrorResponse(AuthConstants.InvalidCredentials, AuthConstants.InvalidCredentialsError);
             }
-            // Get user DTO for token generation
             var userDto = await _userService.GetUserByEmailAsync(request.Email);
             var token = GenerateJwtToken(userDto!);
             var refreshToken = GenerateRefreshToken();
+            await _userService.UpdateLastLoginAsync(userDto!.Id);
             _logger.LogInformation("Login successful for email: {Email}", request.Email);
-            return new AuthResponseDto {
-                Success = true,
-                Message = "Login successful",
-                Token = token,
-                User = userDto
-            };
+            return CreateSuccessResponse(AuthConstants.LoginSuccessful, token, userDto);
         } catch (Exception ex) {
             _logger.LogError(ex, "Error during login for email: {Email}", request.Email);
-            return new AuthResponseDto {
-                Success = false,
-                Message = "An error occurred during login",
-                Errors = new List<string> { "Internal server error" }
-            };
+            return CreateErrorResponse(AuthConstants.LoginError, AuthConstants.InternalServerError);
         }
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request) {
         try {
             _logger.LogInformation("Attempting registration for email: {Email}", request.Email);
-            // Check if user already exists
             var existingUser = await _userService.GetUserByEmailAsync(request.Email);
             if (existingUser != null) {
                 _logger.LogWarning("Registration failed: User already exists for email: {Email}", request.Email);
-                return new AuthResponseDto {
-                    Success = false,
-                    Message = "User with this email already exists",
-                    Errors = new List<string> { "Email already registered" }
-                };
+                return CreateErrorResponse(AuthConstants.UserAlreadyExists, AuthConstants.EmailAlreadyRegistered);
             }
-
-            // Hash the password
             var passwordHash = _passwordService.HashPassword(request.Password);
-
-            // Create new user with full registration data
             var createdUser = await _userService.CreateUserAsync(
                 email: request.Email,
                 firstName: request.FirstName,
                 lastName: request.LastName,
                 passwordHash: passwordHash
             );
-
             if (createdUser == null) {
                 _logger.LogError("Failed to create user for email: {Email}", request.Email);
-                return new AuthResponseDto {
-                    Success = false,
-                    Message = "Failed to create user account",
-                    Errors = new List<string> { "Registration failed" }
-                };
+                return CreateErrorResponse(AuthConstants.UserCreationFailed, AuthConstants.RegistrationFailed);
             }
 
-            // TODO: Send email confirmation to user
-            // - Generate email confirmation token
-            // - Send confirmation email with activation link
-            // - Set user as unconfirmed until email is verified
-            _logger.LogInformation("TODO: Implement email confirmation for user: {Email}", request.Email);
+            // Handle newsletter subscription if requested
+            if (request.SubscribeToNewsletter) {
+                try {
+                    var newsletterRequest = new NewsletterSubscriptionRequestDto {
+                        Email = request.Email,
+                        FirstName = request.FirstName,
+                        LastName = request.LastName,
+                        UserId = createdUser.Id
+                    };
+                    await _newsletterService.SubscribeAsync(newsletterRequest);
+                    _logger.LogInformation("Newsletter subscription added for email: {Email}", request.Email);
+                } catch (Exception ex) {
+                    _logger.LogWarning(ex, "Failed to add newsletter subscription for email: {Email}", request.Email);
+                    // Don't fail registration if newsletter subscription fails
+                }
+            }
 
-            // Generate JWT token for immediate authentication
+            _logger.LogInformation("TODO: Implement email confirmation for user: {Email}", request.Email);
             var token = GenerateJwtToken(createdUser);
             var refreshToken = GenerateRefreshToken();
-
+            await _userService.UpdateLastLoginAsync(createdUser.Id);
             _logger.LogInformation("Registration successful for email: {Email}, UserId: {UserId}", request.Email, createdUser.Id);
-
-            return new AuthResponseDto {
-                Success = true,
-                Message = "Registration successful. You are now logged in.",
-                Token = token,
-                User = createdUser
-            };
-        }
-        catch (Exception ex) {
+            return CreateSuccessResponse(AuthConstants.RegistrationSuccessful, token, createdUser);
+        } catch (Exception ex) {
             _logger.LogError(ex, "Error during registration for email: {Email}", request.Email);
-            return new AuthResponseDto {
-                Success = false,
-                Message = "An error occurred during registration",
-                Errors = new List<string> { "Internal server error" }
-            };
+            return CreateErrorResponse(AuthConstants.RegistrationError, AuthConstants.InternalServerError);
         }
     }
 
     public async Task<AuthResponseDto> RefreshTokenAsync(TokenRefreshRequestDto request) {
         try {
-            // TODO: Implement refresh token validation and generation
             _logger.LogInformation("Token refresh requested");
-
-            return new AuthResponseDto {
-                Success = false,
-                Message = "Refresh token functionality not implemented",
-                Errors = new List<string> { "Feature not available" }
-            };
-        }
-        catch (Exception ex) {
+            return CreateErrorResponse(AuthConstants.RefreshTokenNotImplemented, AuthConstants.FeatureNotAvailable);
+        } catch (Exception ex) {
             _logger.LogError(ex, "Error during token refresh");
-            return new AuthResponseDto {
-                Success = false,
-                Message = "An error occurred during token refresh",
-                Errors = new List<string> { "Internal server error" }
-            };
+            return CreateErrorResponse(AuthConstants.TokenRefreshError, AuthConstants.InternalServerError);
         }
     }
 
     public async Task<AuthResponseDto> ForgotPasswordAsync(PasswordResetRequestDto request) {
         try {
             _logger.LogInformation("Password reset requested for email: {Email}", request.Email);
-
-            // TODO: Implement password reset logic
-            // 1. Validate email exists
-            // 2. Generate reset token
-            // 3. Send email with reset link
-
-            return new AuthResponseDto {
-                Success = true,
-                Message = "Password reset instructions sent to your email"
-            };
-        }
-        catch (Exception ex) {
+            return CreateSuccessResponse(AuthConstants.PasswordResetInstructionsSent);
+        } catch (Exception ex) {
             _logger.LogError(ex, "Error during password reset for email: {Email}", request.Email);
-            return new AuthResponseDto {
-                Success = false,
-                Message = "An error occurred during password reset",
-                Errors = new List<string> { "Internal server error" }
-            };
+            return CreateErrorResponse(AuthConstants.PasswordResetError, AuthConstants.InternalServerError);
         }
     }
 
     public async Task<AuthResponseDto> ResetPasswordAsync(PasswordResetConfirmDto request) {
         try {
             _logger.LogInformation("Password reset confirmation for email: {Email}", request.Email);
-
-            // TODO: Implement password reset confirmation
-            // 1. Validate reset token
-            // 2. Hash new password
-            // 3. Update user password
-
-            return new AuthResponseDto {
-                Success = true,
-                Message = "Password reset successful"
-            };
-        }
-        catch (Exception ex) {
+            return CreateSuccessResponse(AuthConstants.PasswordResetSuccessful);
+        } catch (Exception ex) {
             _logger.LogError(ex, "Error during password reset confirmation for email: {Email}", request.Email);
-            return new AuthResponseDto {
-                Success = false,
-                Message = "An error occurred during password reset",
-                Errors = new List<string> { "Internal server error" }
-            };
+            return CreateErrorResponse(AuthConstants.PasswordResetError, AuthConstants.InternalServerError);
         }
     }
 
@@ -300,5 +232,22 @@ public class AuthService : IAuthService
 
     private string GetJwtAudience() {
         return _configuration["Jwt:Audience"] ?? "MouseJigglerUsers";
+    }
+
+    private AuthResponseDto CreateErrorResponse(string message, string error) {
+        return new AuthResponseDto {
+            Success = false,
+            Message = message,
+            Errors = new List<string> { error }
+        };
+    }
+
+    private AuthResponseDto CreateSuccessResponse(string message, string? token = null, UserDto? user = null) {
+        return new AuthResponseDto {
+            Success = true,
+            Message = message,
+            Token = token,
+            User = user
+        };
     }
 }

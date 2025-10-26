@@ -38,11 +38,13 @@ public class Program
         builder.Services.AddScoped<IActivationKeyRepository, ActivationKeyRepository>();
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        builder.Services.AddScoped<INewsletterSubscriptionRepository, NewsletterSubscriptionRepository>();
 
         // Add services
         builder.Services.AddScoped<IActivationKeyService, ActivationKeyService>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+        builder.Services.AddScoped<INewsletterSubscriptionService, NewsletterSubscriptionService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IPasswordService, PasswordService>();
 

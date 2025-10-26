@@ -11,6 +11,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<ActivationKey> ActivationKeys { get; set; }
     public DbSet<Subscription> Subscriptions { get; set; }
+    public DbSet<NewsletterSubscription> NewsletterSubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) {
         base.OnModelCreating(modelBuilder);
@@ -50,6 +51,22 @@ public class ApplicationDbContext : DbContext
                   .WithOne(u => u.Subscription)
                   .HasForeignKey<Subscription>(e => e.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // NewsletterSubscription configuration
+        modelBuilder.Entity<NewsletterSubscription>(entity => {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
+            entity.Property(e => e.SubscribedAt).IsRequired();
+            entity.Property(e => e.IsActive).IsRequired();
+            entity.HasIndex(e => e.Email).IsUnique();
+            
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

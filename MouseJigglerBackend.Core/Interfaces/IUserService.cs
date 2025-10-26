@@ -11,4 +11,5 @@ public interface IUserService
     Task<UserDto> CreateUserAsync(string email, string firstName, string lastName, string passwordHash);
     Task<bool> UserExistsAsync(string email);
     Task<IEnumerable<UserDto>> GetUsersByEmailFilterAsync(IEnumerable<string> emailFilters);
+    Task UpdateLastLoginAsync(int userId);
 }
