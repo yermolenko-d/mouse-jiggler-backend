@@ -7,18 +7,15 @@ namespace MouseJigglerBackend.DAL.Repositories;
 
 public class ActivationKeyRepository : Repository<ActivationKey>, IActivationKeyRepository
 {
-    public ActivationKeyRepository(ApplicationDbContext context) : base(context)
-    {
+    public ActivationKeyRepository(ApplicationDbContext context) : base(context) {
     }
 
-    public async Task<ActivationKey?> GetByKeyAsync(string key)
-    {
+    public async Task<ActivationKey?> GetByKeyAsync(string key) {
         return await _dbSet
             .FirstOrDefaultAsync(ak => ak.Key == key && ak.IsActive);
     }
 
-    public async Task<bool> IsKeyValidAsync(string key)
-    {
+    public async Task<bool> IsKeyValidAsync(string key) {
         return await _dbSet
             .AnyAsync(ak => ak.Key == key && 
                            ak.IsActive && 
@@ -26,8 +23,7 @@ public class ActivationKeyRepository : Repository<ActivationKey>, IActivationKey
                            (ak.ExpiresAt == null || ak.ExpiresAt > DateTime.UtcNow));
     }
 
-    public async Task<ActivationKey?> GetByKeyWithUserAsync(string key)
-    {
+    public async Task<ActivationKey?> GetByKeyWithUserAsync(string key) {
         return await _dbSet
             .Include(ak => ak.User)
             .ThenInclude(u => u.Subscription)

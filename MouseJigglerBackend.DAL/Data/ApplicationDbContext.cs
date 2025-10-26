@@ -5,32 +5,28 @@ namespace MouseJigglerBackend.DAL.Data;
 
 public class ApplicationDbContext : DbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
-    {
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) {
     }
 
     public DbSet<User> Users { get; set; }
     public DbSet<ActivationKey> ActivationKeys { get; set; }
     public DbSet<Subscription> Subscriptions { get; set; }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
+    protected override void OnModelCreating(ModelBuilder modelBuilder) {
         base.OnModelCreating(modelBuilder);
 
         // User configuration
-        modelBuilder.Entity<User>(entity =>
-        {
+        modelBuilder.Entity<User>(entity => {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
-            entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.HasIndex(e => e.Email).IsUnique();
         });
 
         // ActivationKey configuration
-        modelBuilder.Entity<ActivationKey>(entity =>
-        {
+        modelBuilder.Entity<ActivationKey>(entity => {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Key).IsRequired().HasMaxLength(50);
             entity.Property(e => e.CreatedAt).IsRequired();
@@ -43,8 +39,7 @@ public class ApplicationDbContext : DbContext
         });
 
         // Subscription configuration
-        modelBuilder.Entity<Subscription>(entity =>
-        {
+        modelBuilder.Entity<Subscription>(entity => {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.PlanName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Status).IsRequired();

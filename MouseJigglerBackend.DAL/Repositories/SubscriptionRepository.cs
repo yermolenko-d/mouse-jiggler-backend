@@ -7,18 +7,15 @@ namespace MouseJigglerBackend.DAL.Repositories;
 
 public class SubscriptionRepository : Repository<Subscription>, ISubscriptionRepository
 {
-    public SubscriptionRepository(ApplicationDbContext context) : base(context)
-    {
+    public SubscriptionRepository(ApplicationDbContext context) : base(context) {
     }
 
-    public async Task<Subscription?> GetByUserIdAsync(int userId)
-    {
+    public async Task<Subscription?> GetByUserIdAsync(int userId) {
         return await _dbSet
             .FirstOrDefaultAsync(s => s.UserId == userId && s.IsActive);
     }
 
-    public async Task<Subscription?> GetActiveByUserIdAsync(int userId)
-    {
+    public async Task<Subscription?> GetActiveByUserIdAsync(int userId) {
         return await _dbSet
             .FirstOrDefaultAsync(s => s.UserId == userId && 
                                      s.IsActive && 
@@ -26,8 +23,7 @@ public class SubscriptionRepository : Repository<Subscription>, ISubscriptionRep
                                      (s.EndDate == null || s.EndDate > DateTime.UtcNow));
     }
 
-    public async Task<bool> HasActiveSubscriptionAsync(int userId)
-    {
+    public async Task<bool> HasActiveSubscriptionAsync(int userId) {
         return await _dbSet
             .AnyAsync(s => s.UserId == userId && 
                           s.IsActive && 

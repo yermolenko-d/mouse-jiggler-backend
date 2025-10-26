@@ -32,56 +32,42 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
     {
-        try
-        {
+        try {
             _logger.LogInformation("Attempting login for email: {Email}", request.Email);
-
             // Get the user entity to access password hash
             var userEntity = await _userService.GetUserEntityByEmailAsync(request.Email);
-            if (userEntity == null)
-            {
+            if (userEntity == null) {
                 _logger.LogWarning("Login failed: User not found for email: {Email}", request.Email);
-                return new AuthResponseDto
-                {
+                return new AuthResponseDto {
                     Success = false,
                     Message = "Invalid email or password",
                     Errors = new List<string> { "Invalid credentials" }
                 };
             }
-
             // Verify password
             var passwordValid = _passwordService.VerifyPassword(request.Password, userEntity.PasswordHash);
-            if (!passwordValid)
-            {
+            if (!passwordValid) {
                 _logger.LogWarning("Login failed: Invalid password for email: {Email}", request.Email);
-                return new AuthResponseDto
-                {
+                return new AuthResponseDto {
                     Success = false,
                     Message = "Invalid email or password",
                     Errors = new List<string> { "Invalid credentials" }
                 };
             }
-
             // Get user DTO for token generation
             var userDto = await _userService.GetUserByEmailAsync(request.Email);
             var token = GenerateJwtToken(userDto!);
             var refreshToken = GenerateRefreshToken();
-
             _logger.LogInformation("Login successful for email: {Email}", request.Email);
-
-            return new AuthResponseDto
-            {
+            return new AuthResponseDto {
                 Success = true,
                 Message = "Login successful",
                 Token = token,
                 User = userDto
             };
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             _logger.LogError(ex, "Error during login for email: {Email}", request.Email);
-            return new AuthResponseDto
-            {
+            return new AuthResponseDto {
                 Success = false,
                 Message = "An error occurred during login",
                 Errors = new List<string> { "Internal server error" }
@@ -89,19 +75,14 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
-    {
-        try
-        {
+    public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request) {
+        try {
             _logger.LogInformation("Attempting registration for email: {Email}", request.Email);
-
             // Check if user already exists
-            var existingUsers = await _userService.GetUsersByEmailFilterAsync(new[] { request.Email });
-            if (existingUsers.Any())
-            {
+            var existingUser = await _userService.GetUserByEmailAsync(request.Email);
+            if (existingUser != null) {
                 _logger.LogWarning("Registration failed: User already exists for email: {Email}", request.Email);
-                return new AuthResponseDto
-                {
+                return new AuthResponseDto {
                     Success = false,
                     Message = "User with this email already exists",
                     Errors = new List<string> { "Email already registered" }
@@ -111,43 +92,45 @@ public class AuthService : IAuthService
             // Hash the password
             var passwordHash = _passwordService.HashPassword(request.Password);
 
-            // Create new user
+            // Create new user with full registration data
             var createdUser = await _userService.CreateUserAsync(
                 email: request.Email,
-                firstName: string.Empty,
-                lastName: string.Empty,
+                firstName: request.FirstName,
+                lastName: request.LastName,
                 passwordHash: passwordHash
             );
 
-            if (createdUser == null)
-            {
+            if (createdUser == null) {
                 _logger.LogError("Failed to create user for email: {Email}", request.Email);
-                return new AuthResponseDto
-                {
+                return new AuthResponseDto {
                     Success = false,
                     Message = "Failed to create user account",
                     Errors = new List<string> { "Registration failed" }
                 };
             }
 
+            // TODO: Send email confirmation to user
+            // - Generate email confirmation token
+            // - Send confirmation email with activation link
+            // - Set user as unconfirmed until email is verified
+            _logger.LogInformation("TODO: Implement email confirmation for user: {Email}", request.Email);
+
+            // Generate JWT token for immediate authentication
             var token = GenerateJwtToken(createdUser);
             var refreshToken = GenerateRefreshToken();
 
-            _logger.LogInformation("Registration successful for email: {Email}", request.Email);
+            _logger.LogInformation("Registration successful for email: {Email}, UserId: {UserId}", request.Email, createdUser.Id);
 
-            return new AuthResponseDto
-            {
+            return new AuthResponseDto {
                 Success = true,
-                Message = "Registration successful",
+                Message = "Registration successful. You are now logged in.",
                 Token = token,
                 User = createdUser
             };
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             _logger.LogError(ex, "Error during registration for email: {Email}", request.Email);
-            return new AuthResponseDto
-            {
+            return new AuthResponseDto {
                 Success = false,
                 Message = "An error occurred during registration",
                 Errors = new List<string> { "Internal server error" }
@@ -155,25 +138,20 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<AuthResponseDto> RefreshTokenAsync(TokenRefreshRequestDto request)
-    {
-        try
-        {
+    public async Task<AuthResponseDto> RefreshTokenAsync(TokenRefreshRequestDto request) {
+        try {
             // TODO: Implement refresh token validation and generation
             _logger.LogInformation("Token refresh requested");
 
-            return new AuthResponseDto
-            {
+            return new AuthResponseDto {
                 Success = false,
                 Message = "Refresh token functionality not implemented",
                 Errors = new List<string> { "Feature not available" }
             };
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             _logger.LogError(ex, "Error during token refresh");
-            return new AuthResponseDto
-            {
+            return new AuthResponseDto {
                 Success = false,
                 Message = "An error occurred during token refresh",
                 Errors = new List<string> { "Internal server error" }
@@ -181,10 +159,8 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<AuthResponseDto> ForgotPasswordAsync(PasswordResetRequestDto request)
-    {
-        try
-        {
+    public async Task<AuthResponseDto> ForgotPasswordAsync(PasswordResetRequestDto request) {
+        try {
             _logger.LogInformation("Password reset requested for email: {Email}", request.Email);
 
             // TODO: Implement password reset logic
@@ -192,17 +168,14 @@ public class AuthService : IAuthService
             // 2. Generate reset token
             // 3. Send email with reset link
 
-            return new AuthResponseDto
-            {
+            return new AuthResponseDto {
                 Success = true,
                 Message = "Password reset instructions sent to your email"
             };
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             _logger.LogError(ex, "Error during password reset for email: {Email}", request.Email);
-            return new AuthResponseDto
-            {
+            return new AuthResponseDto {
                 Success = false,
                 Message = "An error occurred during password reset",
                 Errors = new List<string> { "Internal server error" }
@@ -210,10 +183,8 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<AuthResponseDto> ResetPasswordAsync(PasswordResetConfirmDto request)
-    {
-        try
-        {
+    public async Task<AuthResponseDto> ResetPasswordAsync(PasswordResetConfirmDto request) {
+        try {
             _logger.LogInformation("Password reset confirmation for email: {Email}", request.Email);
 
             // TODO: Implement password reset confirmation
@@ -221,17 +192,14 @@ public class AuthService : IAuthService
             // 2. Hash new password
             // 3. Update user password
 
-            return new AuthResponseDto
-            {
+            return new AuthResponseDto {
                 Success = true,
                 Message = "Password reset successful"
             };
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             _logger.LogError(ex, "Error during password reset confirmation for email: {Email}", request.Email);
-            return new AuthResponseDto
-            {
+            return new AuthResponseDto {
                 Success = false,
                 Message = "An error occurred during password reset",
                 Errors = new List<string> { "Internal server error" }
@@ -239,15 +207,12 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<bool> ValidateTokenAsync(string token)
-    {
-        try
-        {
+    public async Task<bool> ValidateTokenAsync(string token) {
+        try {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(GetJwtSecret());
 
-            tokenHandler.ValidateToken(token, new TokenValidationParameters
-            {
+            tokenHandler.ValidateToken(token, new TokenValidationParameters {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
                 ValidateIssuer = true,
@@ -258,36 +223,27 @@ public class AuthService : IAuthService
             }, out SecurityToken validatedToken);
 
             return true;
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             _logger.LogWarning(ex, "Token validation failed");
             return false;
         }
     }
 
-    public async Task LogoutAsync(string token)
-    {
-        try
-        {
+    public async Task LogoutAsync(string token) {
+        try {
             _logger.LogInformation("User logout requested");
             // TODO: Implement token blacklisting or refresh token invalidation
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             _logger.LogError(ex, "Error during logout");
         }
     }
 
-    public async Task<UserDto?> GetUserFromTokenAsync(string token)
-    {
-        try
-        {
+    public async Task<UserDto?> GetUserFromTokenAsync(string token) {
+        try {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(GetJwtSecret());
 
-            var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
-            {
+            var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
                 ValidateIssuer = true,
@@ -298,28 +254,22 @@ public class AuthService : IAuthService
             }, out SecurityToken validatedToken);
 
             var userIdClaim = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
-            {
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId)) {
                 return null;
             }
 
             return await _userService.GetUserByIdAsync(userId);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             _logger.LogWarning(ex, "Error extracting user from token");
             return null;
         }
     }
 
-    private string GenerateJwtToken(UserDto user)
-    {
+    private string GenerateJwtToken(UserDto user) {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(GetJwtSecret());
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[]
-            {
+        var tokenDescriptor = new SecurityTokenDescriptor {
+            Subject = new ClaimsIdentity(new[] {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Name, user.Email)
@@ -329,31 +279,26 @@ public class AuthService : IAuthService
             Audience = GetJwtAudience(),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
-
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return tokenHandler.WriteToken(token);
     }
 
-    private string GenerateRefreshToken()
-    {
+    private string GenerateRefreshToken() {
         var randomNumber = new byte[32];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber);
     }
 
-    private string GetJwtSecret()
-    {
+    private string GetJwtSecret() {
         return _configuration["Jwt:Secret"] ?? "YourSuperSecretKeyThatShouldBeAtLeast32CharactersLong!";
     }
 
-    private string GetJwtIssuer()
-    {
+    private string GetJwtIssuer() {
         return _configuration["Jwt:Issuer"] ?? "MouseJigglerBackend";
     }
 
-    private string GetJwtAudience()
-    {
+    private string GetJwtAudience() {
         return _configuration["Jwt:Audience"] ?? "MouseJigglerUsers";
     }
 }

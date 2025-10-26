@@ -15,8 +15,7 @@ public class SubscriptionController : ControllerBase
     public SubscriptionController(
         ISubscriptionService subscriptionService,
         IAuthService authService,
-        ILogger<SubscriptionController> logger)
-    {
+        ILogger<SubscriptionController> logger) {
         _subscriptionService = subscriptionService;
         _authService = authService;
         _logger = logger;
@@ -32,35 +31,21 @@ public class SubscriptionController : ControllerBase
     [ProducesResponseType(typeof(object), 401)]
     [ProducesResponseType(typeof(object), 404)]
     [ProducesResponseType(typeof(object), 500)]
-    public async Task<IActionResult> GetCurrentUserSubscription([FromBody] string token)
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(token))
-            {
+    public async Task<IActionResult> GetCurrentUserSubscription([FromBody] string token) {
+        try {
+            if (string.IsNullOrEmpty(token)) {
                 return Unauthorized(new { success = false, message = "Token is required" });
             }
-
-            // Validate token and get user
             var user = await _authService.GetUserFromTokenAsync(token);
-
-            if (user == null)
-            {
+            if (user == null) {
                 return Unauthorized(new { success = false, message = "Invalid or expired token" });
             }
-
-            // Get user's subscription
             var subscription = await _subscriptionService.GetUserSubscriptionAsync(user.Id);
-
-            if (subscription == null)
-            {
+            if (subscription == null) {
                 return NotFound(new { success = false, message = "No subscription found for this user" });
             }
-
             return Ok(subscription);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             _logger.LogError(ex, "Error in get current user subscription endpoint");
             return StatusCode(500, new { success = false, message = "Internal server error" });
         }
@@ -75,30 +60,18 @@ public class SubscriptionController : ControllerBase
     [ProducesResponseType(typeof(object), 200)]
     [ProducesResponseType(typeof(object), 401)]
     [ProducesResponseType(typeof(object), 500)]
-    public async Task<IActionResult> CheckActiveSubscription([FromBody] string token)
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(token))
-            {
+    public async Task<IActionResult> CheckActiveSubscription([FromBody] string token) {
+        try {
+            if (string.IsNullOrEmpty(token)) {
                 return Unauthorized(new { success = false, message = "Token is required" });
             }
-
-            // Validate token and get user
             var user = await _authService.GetUserFromTokenAsync(token);
-
-            if (user == null)
-            {
+            if (user == null) {
                 return Unauthorized(new { success = false, message = "Invalid or expired token" });
             }
-
-            // Check if user has active subscription
             var hasActiveSubscription = await _subscriptionService.HasActiveSubscriptionAsync(user.Id);
-
             return Ok(new { hasActiveSubscription });
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             _logger.LogError(ex, "Error in check active subscription endpoint");
             return StatusCode(500, new { success = false, message = "Internal server error" });
         }

@@ -8,8 +8,7 @@ namespace MouseJigglerBackend;
 
 public class Program
 {
-    public static void Main(string[] args)
-    {
+    public static void Main(string[] args) {
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
@@ -20,12 +19,10 @@ public class Program
         builder.Services.AddSwaggerGen();
 
         // Add Entity Framework
-        builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        {
+        builder.Services.AddDbContext<ApplicationDbContext>(options => {
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             // Replace environment variables in connection string if they exist
-            if (!string.IsNullOrEmpty(connectionString))
-            {
+            if (!string.IsNullOrEmpty(connectionString)) {
                 connectionString = connectionString
                     .Replace("${DB_HOST}", Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost")
                     .Replace("${DB_PORT}", Environment.GetEnvironmentVariable("DB_PORT") ?? "5432")
@@ -51,8 +48,7 @@ public class Program
 
         // Add CORS
         builder.Services.AddCors(options => {
-            if (builder.Environment.IsDevelopment())
-            {
+            if (builder.Environment.IsDevelopment()) {
                 options.AddPolicy("AllowAll", policy => {
                     policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
                 });
@@ -70,8 +66,7 @@ public class Program
 
         // Configure the HTTP request pipeline.
         var enableSwagger = builder.Configuration.GetValue("EnableSwagger", false);
-        if (app.Environment.IsDevelopment() || enableSwagger)
-        {
+        if (app.Environment.IsDevelopment() || enableSwagger) {
             app.UseSwagger();
             app.UseSwaggerUI();
             app.MapOpenApi();
@@ -80,8 +75,7 @@ public class Program
         app.UseHttpsRedirection();
         
         // Use appropriate CORS policy based on environment
-        if (app.Environment.IsDevelopment())
-        {
+        if (app.Environment.IsDevelopment()) {
             app.UseCors("AllowAll");
         } else {
             app.UseCors("Production");
